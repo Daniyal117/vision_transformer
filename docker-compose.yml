@@ -1,0 +1,66 @@
+version: '3.9'
+
+services:
+  # -----------------------
+  # FastAPI backend service
+  # -----------------------
+  backend:
+    build:
+      context: ./backend   # path to your backend folder
+      dockerfile: Dockerfile
+    container_name: fastapi-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - model-data:/app/content/final-vit-model
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+
+  # -----------------------
+  # Celery worker service
+  # -----------------------
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: celery-worker
+    command: celery -A celery_worker.app worker --loglevel=info --concurrency=1 --pool=solo
+    volumes:
+      - model-data:/app/content/final-vit-model
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+
+  # -----------------------
+  # Redis broker service
+  # -----------------------
+  redis:
+    image: redis:7-alpine
+    container_name: redis-server
+    ports:
+      - "6379:6379"
+
+  # -----------------------
+  # Frontend service (React/Vite)
+  # -----------------------
+  frontend:
+    build:
+      context: ./frontend   # path to your frontend folder
+      dockerfile: Dockerfile
+    container_name: react-frontend
+    ports:
+      - "3000:80"
+    environment:
+      VITE_API_URL: "http://backend:8000"
+    depends_on:
+      - backend
+    restart: always
+
+# -----------------------
+# Docker volume declaration
+# -----------------------
+volumes:
+  model-data:
