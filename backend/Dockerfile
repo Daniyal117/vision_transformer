@@ -6,15 +6,11 @@ RUN apt-get update && apt-get install -y \
     wget unzip git build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip
-RUN pip install --upgrade pip
-
-# Install CPU-only PyTorch FIRST (correct version)
-RUN pip install --no-cache-dir torch==2.9.0+cpu -f https://download.pytorch.org/whl/cpu
-
-# Install remaining dependencies
 COPY requirements.txt .
+
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install gdown
 
 COPY . .
 
